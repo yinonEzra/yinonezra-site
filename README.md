@@ -17,6 +17,7 @@ Then open http://localhost:8080
 Upload the folder as-is to Netlify, Vercel, Cloudflare Pages, or GitHub Pages, then point the `yinonezra.com` DNS at it.
 
 ## Notes
-- Images currently point at the existing Squarespace CDN. Before cancelling Squarespace, download them into an `assets/` folder and update the paths in `js/projects.js`.
+- Project images live in `assets/` and are referenced from `js/projects.js`. Drop new screenshots there (JPEG, ~2000px wide is plenty) and add the path to the project's `media` list.
+- Hosted on GitHub Pages from the `main` branch. Every push deploys automatically in about a minute.
 - The Work page is a full-bleed "video wall": every tile is a muted, looping YouTube embed that autoplays on load (driven via the YouTube IFrame API so short clips loop without YouTube's controls flashing). Thumbnails cover each tile until playback has started. Clicking a tile opens the project page, where the video plays with normal controls on click.
 - Nine simultaneous embeds are heavier than static images. If mobile data use becomes a concern, the simplest fix is to lower the number of projects on the home page or move some to a second row that loads on scroll.
