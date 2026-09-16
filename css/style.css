@@ -1,0 +1,143 @@
+/* ------------------------------------------------------------------
+   Yinon Ezra — portfolio
+   Palette and type mirror the original site: deep navy, warm bone
+   text, a geometric sans (Poppins).
+------------------------------------------------------------------- */
+:root {
+  --bg: #0a0a1a;
+  --bg-elev: #12122a;
+  --fg: #d3ccbb;
+  --fg-dim: rgba(211, 204, 187, 0.62);
+  --line: rgba(211, 204, 187, 0.14);
+  --card: #2f2f33;
+  --accent: #f2b544;          /* used sparingly: play button, focus ring */
+  --max: 1400px;
+  --gutter: clamp(16px, 3vw, 40px);
+  --font: "Poppins", "Futura", "Avenir Next", "Helvetica Neue", Arial, sans-serif;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font);
+  font-weight: 400;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+img, video, iframe { display: block; max-width: 100%; }
+a { color: inherit; text-decoration: none; }
+a:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+button { font: inherit; color: inherit; }
+
+/* Header ---------------------------------------------------------- */
+.site-header {
+  position: sticky; top: 0; z-index: 20;
+  background: color-mix(in srgb, var(--bg) 88%, transparent);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+.site-header .inner {
+  max-width: var(--max); margin: 0 auto; padding: 20px var(--gutter);
+  display: grid; grid-template-columns: 1fr auto 1fr; align-items: center;
+}
+.site-nav { display: flex; gap: 22px; font-size: 14px; letter-spacing: 0.02em; }
+.site-nav a { opacity: 0.85; transition: opacity .2s; padding: 4px 0; border-bottom: 1px solid transparent; }
+.site-nav a:hover, .site-nav a[aria-current="page"] { opacity: 1; border-bottom-color: var(--fg); }
+.brand {
+  font-weight: 600; font-size: 18px; letter-spacing: 0.12em; text-transform: uppercase;
+  justify-self: center; white-space: nowrap;
+}
+
+/* Hero ------------------------------------------------------------ */
+.hero { text-align: center; padding: clamp(40px, 8vh, 96px) var(--gutter) clamp(32px, 6vh, 72px); }
+.hero h1 { margin: 0; font-weight: 400; font-size: clamp(22px, 2.6vw, 32px); letter-spacing: 0.01em; }
+.hero p  { margin: 10px 0 0; color: var(--fg-dim); font-size: 15px; }
+
+/* Work grid — full-bleed live video wall ------------------------ */
+.work { width: 100%; max-width: none; margin: 0; padding: 0 0 80px; }
+.grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 4px; }
+.tile { position: relative; display: block; background: var(--card); overflow: hidden; aspect-ratio: 16 / 9; }
+.tile.featured { grid-column: 1 / -1; }
+.tile .poster { position: absolute; inset: 0; z-index: 1; width: 100%; height: 100%; object-fit: cover; transition: opacity 1.2s ease; }
+.tile.is-live .poster { opacity: 0; }
+/* The embed is oversized and scaled so YouTube's letterboxing, title bar
+   and watermark are cropped away; pointer-events are off so clicks reach
+   the surrounding link instead of the player. */
+.tile .live {
+  position: absolute; top: 50%; left: 50%; width: 100%; height: 100%; border: 0;
+  transform: translate(-50%, -50%) scale(1.22);
+  pointer-events: none;
+}
+.tile::after { content: ""; position: absolute; inset: 0; background: rgba(10,10,26,0); transition: background .3s; }
+.tile:hover::after { background: rgba(10,10,26,.28); }
+.tile .label {
+  position: absolute; left: 0; right: 0; bottom: 0; z-index: 2; padding: 48px 22px 18px;
+  background: linear-gradient(to top, rgba(10,10,26,.9), transparent);
+  font-size: 16px; letter-spacing: 0.03em;
+  opacity: 0; transform: translateY(6px); transition: opacity .3s, transform .3s;
+}
+.tile:hover .label, .tile:focus-visible .label { opacity: 1; transform: none; }
+
+/* Project page ---------------------------------------------------- */
+.project { max-width: 1100px; margin: 0 auto; padding: 0 var(--gutter) 60px; }
+.project-head { text-align: center; padding: clamp(28px, 5vh, 56px) 0 clamp(24px, 4vh, 40px); }
+.project-head h1 { margin: 0 0 12px; font-weight: 500; font-size: clamp(26px, 3vw, 36px); }
+.project-head p  { margin: 0 auto; max-width: 62ch; color: var(--fg-dim); font-size: 16px; }
+.tools { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin: 18px 0 0; padding: 0; list-style: none; }
+.tools li { font-size: 12px; letter-spacing: .06em; text-transform: uppercase; padding: 5px 10px; border: 1px solid var(--line); border-radius: 999px; color: var(--fg-dim); }
+.media { display: grid; gap: 18px; }
+.media > * { width: 100%; border-radius: 4px; overflow: hidden; background: var(--card); }
+.video-frame { position: relative; aspect-ratio: 16 / 9; }
+.video-frame iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+.video-frame .poster { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; cursor: pointer; }
+.video-frame .poster-btn { position: absolute; inset: 0; width: 100%; height: 100%; background: none; border: 0; cursor: pointer; padding: 0; }
+.video-frame .poster-btn::after {
+  content: ""; position: absolute; inset: 0; margin: auto; width: 72px; height: 72px; border-radius: 50%;
+  background: rgba(10,10,26,.6); border: 1px solid rgba(211,204,187,.4);
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path fill='%23d3ccbb' d='M9 6.5v11l9-5.5z'/></svg>");
+  background-repeat: no-repeat; background-position: center; background-size: 40px;
+  transition: transform .25s;
+}
+.video-frame .poster-btn:hover::after { transform: scale(1.06); }
+
+.pager { display: flex; justify-content: space-between; gap: 16px; margin-top: 48px; padding-top: 24px; border-top: 1px solid var(--line); font-size: 14px; }
+.pager a { color: var(--fg-dim); transition: color .2s; }
+.pager a:hover { color: var(--fg); }
+.pager .next { text-align: right; margin-left: auto; }
+.pager small { display: block; font-size: 11px; letter-spacing: .1em; text-transform: uppercase; opacity: .6; }
+
+/* About ----------------------------------------------------------- */
+.about { max-width: 640px; margin: 0 auto; padding: clamp(40px, 10vh, 120px) var(--gutter) 100px; font-size: 17px; }
+.about p { margin: 0 0 1.2em; }
+.about .contact { margin-top: 40px; color: var(--fg-dim); font-size: 15px; }
+.about a { color: var(--fg); border-bottom: 1px solid var(--line); transition: border-color .2s; }
+.about a:hover { border-bottom-color: var(--fg); }
+
+/* Footer ---------------------------------------------------------- */
+.site-footer { max-width: var(--max); margin: 0 auto; padding: 28px var(--gutter) 40px; border-top: 1px solid var(--line); color: var(--fg-dim); font-size: 13px; display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.site-footer a:hover { color: var(--fg); }
+
+/* Responsive ------------------------------------------------------ */
+@media (max-width: 720px) {
+  .site-header .inner { grid-template-columns: 1fr auto; }
+  .brand { grid-row: 1; grid-column: 1; justify-self: start; }
+  .site-nav { grid-column: 2; }
+  .grid { grid-template-columns: 1fr; }
+  .tile .label { opacity: 1; transform: none; padding: 34px 16px 14px; font-size: 14px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after { transition: none !important; }
+}
+
+/* Layout polish -------------------------------------------------- */
+body { min-height: 100vh; min-height: 100dvh; display: flex; flex-direction: column; }
+main { flex: 1 0 auto; width: 100%; }
+.pager a { min-width: 0; overflow-wrap: anywhere; }
+@media (max-width: 720px) {
+  .pager { flex-direction: column; gap: 14px; }
+  .pager .next { text-align: left; margin-left: 0; }
+}
