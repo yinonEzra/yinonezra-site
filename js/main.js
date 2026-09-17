@@ -39,27 +39,55 @@
     //  (b) loop seamlessly by seeking back just before the end, so the
     //      end-of-video / replay chrome never flashes on short clips.
     const frames = [...grid.querySelectorAll(".tile .live")];
-    const REVEAL_DELAY = 3500;
-    frames.forEach((f) => setTimeout(() => f.closest(".tile").classList.add("is-live"), 10000)); // safety net
+    const REVEAL_DELAY = 3000;
+
+    // Loading screen: stays up until the first few videos are actually
+    // playing (or a hard time limit), so the page appears already "live".
+    const loader = document.getElementById("loader");
+    const NEED = Math.min(3, frames.length);
+    let readyCount = 0, loaderDone = false;
+    const setProgress = () => loader && loader.style.setProperty("--p", NEED ? readyCount / NEED : 1);
+    const finishLoader = () => {
+      if (loaderDone) return;
+      loaderDone = true;
+      document.documentElement.classList.remove("is-loading");
+      loader && loader.classList.add("done");
+    };
+    if (loader) {
+      document.documentElement.classList.add("is-loading");
+      setProgress();
+      if (!NEED) finishLoader();
+      setTimeout(finishLoader, 9000); // never hold visitors hostage
+    }
+
+    const reveal = (tile, index) => {
+      if (tile.classList.contains("is-live")) return;
+      tile.classList.add("is-live");
+      if (index < NEED) { readyCount++; setProgress(); if (readyCount >= NEED) finishLoader(); }
+    };
+    frames.forEach((f, i) => setTimeout(() => reveal(f.closest(".tile"), i), 10000)); // safety net
+
     if (frames.length) {
       const prevReady = window.onYouTubeIframeAPIReady;
       window.onYouTubeIframeAPIReady = () => {
         prevReady && prevReady();
-        frames.forEach((frame) => {
+        frames.forEach((frame, i) => {
           const tile = frame.closest(".tile");
-          let revealed = false;
+          let started = false;
           const player = new YT.Player(frame, {
             events: {
               onReady: (e) => { e.target.mute(); e.target.playVideo(); },
               onStateChange: (e) => {
-                if (e.data === YT.PlayerState.PLAYING && !revealed) {
-                  revealed = true;
-                  setTimeout(() => tile.classList.add("is-live"), REVEAL_DELAY);
+                if (e.data === YT.PlayerState.PLAYING && !started) {
+                  started = true;
+                  setTimeout(() => reveal(tile, i), REVEAL_DELAY);
                 }
                 if (e.data === YT.PlayerState.ENDED) { e.target.seekTo(0, true); e.target.playVideo(); }
               }
             }
           });
+          // Seamless loop: jump back just before the end so YouTube never
+          // shows its end-of-video / replay chrome on short clips.
           setInterval(() => {
             try {
               const d = player.getDuration && player.getDuration();
@@ -72,6 +100,7 @@
       const tag = document.createElement("script");
       tag.src = "https://www.youtube.com/iframe_api";
       tag.async = true;
+      tag.onerror = finishLoader; // API blocked (ad blocker etc.): don't wait on it
       document.head.appendChild(tag);
     }
   }
