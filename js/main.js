@@ -53,11 +53,20 @@
       document.documentElement.classList.remove("is-loading");
       loader && loader.classList.add("done");
     };
+    // Timers that give up waiting on YouTube must not run down while the tab
+    // is in the background (browsers pause autoplay there); re-arm them once
+    // the visitor actually looks at the page.
+    const afterVisible = (fn, ms) => setTimeout(() => {
+      if (!document.hidden) return fn();
+      const onShow = () => { if (!document.hidden) { document.removeEventListener("visibilitychange", onShow); setTimeout(fn, ms); } };
+      document.addEventListener("visibilitychange", onShow);
+    }, ms);
+
     if (loader) {
       document.documentElement.classList.add("is-loading");
       setProgress();
       if (!NEED) finishLoader();
-      setTimeout(finishLoader, 9000); // never hold visitors hostage
+      afterVisible(finishLoader, 9000); // never hold visitors hostage
     }
 
     const reveal = (tile, index) => {
@@ -65,7 +74,7 @@
       tile.classList.add("is-live");
       if (index < NEED) { readyCount++; setProgress(); if (readyCount >= NEED) finishLoader(); }
     };
-    frames.forEach((f, i) => setTimeout(() => reveal(f.closest(".tile"), i), 10000)); // safety net
+    frames.forEach((f, i) => afterVisible(() => reveal(f.closest(".tile"), i), 10000)); // safety net
 
     // --- Seamless looping -------------------------------------------
     // YouTube shows its title/controls chrome for ~3s whenever playback
