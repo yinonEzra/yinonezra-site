@@ -76,8 +76,8 @@ html.is-loading { overflow: hidden; }
 }
 
 /* Hero ------------------------------------------------------------ */
-.hero { text-align: center; padding: clamp(40px, 8vh, 96px) var(--gutter) clamp(32px, 6vh, 72px); }
-.hero h1 { margin: 0; font-weight: 400; font-size: clamp(22px, 2.6vw, 32px); letter-spacing: 0.01em; }
+.hero { text-align: center; padding: 0 var(--gutter) clamp(20px, 3vh, 32px); }
+.hero h1 { margin: 0; font-weight: 300; font-size: 18px; letter-spacing: 0.02em; }
 .hero p  { margin: 10px 0 0; color: var(--fg-dim); font-size: 15px; }
 
 /* Work grid — full-bleed live video wall ------------------------ */
