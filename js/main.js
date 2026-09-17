@@ -76,7 +76,7 @@
     //  * longer clips (which loop rarely) briefly show their poster while
     //    the single player restarts.
     const CHROME_MS = 3300;  // how long YouTube's chrome stays up after a (re)start
-    const LEAD = 4.2;        // seconds before the end to warm up the spare player
+    const LEAD = 4.8;        // seconds before the end to warm up the spare player
     const DUAL_MAX = matchMedia("(max-width: 720px)").matches ? 20 : 45; // seconds; shorter clips get the second player (fewer on phones)
     const PS = () => window.YT && YT.PlayerState;
     const liveVars = (id) => ({ autoplay: 0, mute: 1, controls: 0, rel: 0, modestbranding: 1, playsinline: 1,
@@ -119,7 +119,7 @@
             try { S.mute(); S.seekTo(0, true); S.playVideo(); spareWarmAt = performance.now(); } catch (_) {}
           }
           const warm = spareWarmAt && performance.now() - spareWarmAt >= CHROME_MS;
-          if (spareWarmAt && !swapping && (remaining < 0.6 || st === PS().ENDED)) {
+          if (spareWarmAt && !swapping && (remaining < 1.0 || st === PS().ENDED)) {
             if (warm) {
               swapping = true;
               front(1 - active);
@@ -138,7 +138,7 @@
             }
           }
         } else if (spare === false) {
-          if (!covering && (remaining < 0.7 || st === PS().ENDED)) {
+          if (!covering && (remaining < 1.0 || st === PS().ENDED)) {
             covering = true;
             tile.classList.remove("is-live");
             setTimeout(() => { try { P.seekTo(0, true); P.playVideo(); } catch (_) {} }, 250);
