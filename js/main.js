@@ -20,12 +20,12 @@
   const grid = document.querySelector("[data-grid]");
   if (grid) {
     const live = (id) =>
-      `https://www.youtube-nocookie.com/embed/${id}?autoplay=1&mute=1&loop=1&playlist=${id}` +
+      `https://www.youtube-nocookie.com/embed/${id}?autoplay=1&mute=1` +
       `&controls=0&rel=0&modestbranding=1&playsinline=1&disablekb=1&fs=0&iv_load_policy=3&showinfo=0` +
       `&enablejsapi=1&origin=${encodeURIComponent(location.origin)}`;
     grid.innerHTML = P.map((p, i) => {
       const cover = p.cover || (p.video ? yt.thumb(p.video) : "");
-      return `<a class="tile${p.featured || i === 0 ? " featured" : ""}" href="${projectHref(p)}" aria-label="${esc(p.title)}">
+      return `<a class="tile${p.featured || i === 0 ? " featured" : ""}" href="${projectHref(p)}" aria-label="${esc(p.title)}" data-video="${esc(p.video || "")}">
         <img class="poster" src="${esc(cover)}" alt="" data-yt="${p.cover ? "" : esc(p.video || "")}">
         ${p.video ? `<iframe class="live" src="${live(p.video)}" title="${esc(p.title)} (preview)" tabindex="-1" aria-hidden="true" allow="autoplay; encrypted-media" referrerpolicy="strict-origin-when-cross-origin"></iframe>` : ""}
         <span class="label">${esc(p.title)}</span>
@@ -39,7 +39,7 @@
     //  (b) loop seamlessly by seeking back just before the end, so the
     //      end-of-video / replay chrome never flashes on short clips.
     const frames = [...grid.querySelectorAll(".tile .live")];
-    const REVEAL_DELAY = 3000;
+    const REVEAL_DELAY = 3300;
 
     // Loading screen: stays up until the first few videos are actually
     // playing (or a hard time limit), so the page appears already "live".
@@ -67,35 +67,106 @@
     };
     frames.forEach((f, i) => setTimeout(() => reveal(f.closest(".tile"), i), 10000)); // safety net
 
+    // --- Seamless looping -------------------------------------------
+    // YouTube shows its title/controls chrome for ~3s whenever playback
+    // (re)starts, including after a seek. To hide that:
+    //  * clips shorter than DUAL_MAX get a second, hidden player that is
+    //    started LEAD seconds before the visible one ends; once its chrome
+    //    has faded we swap them, so the loop never shows any UI;
+    //  * longer clips (which loop rarely) briefly show their poster while
+    //    the single player restarts.
+    const CHROME_MS = 3300;  // how long YouTube's chrome stays up after a (re)start
+    const LEAD = 4.2;        // seconds before the end to warm up the spare player
+    const DUAL_MAX = matchMedia("(max-width: 720px)").matches ? 20 : 45; // seconds; shorter clips get the second player (fewer on phones)
+    const PS = () => window.YT && YT.PlayerState;
+    const liveVars = (id) => ({ autoplay: 0, mute: 1, controls: 0, rel: 0, modestbranding: 1, playsinline: 1,
+      disablekb: 1, fs: 0, iv_load_policy: 3, origin: location.origin });
+
+    function setupTile(tile, frame, index) {
+      const id = tile.dataset.video;
+      const players = [];
+      let active = 0, started = false, spare = null, spareWarmAt = 0, covering = false, swapping = false;
+
+      const front = (k) => players.forEach((pl, j) => pl.getIframe().classList.toggle("is-back", j !== k));
+
+      const tick = () => {
+        const P = players[active];
+        if (!P || !P.getDuration) return;
+        let d = 0, t = 0, st = -1;
+        try { d = P.getDuration(); t = P.getCurrentTime(); st = P.getPlayerState(); } catch (_) { return; }
+        if (!(d > 1) || !(t >= 0)) return;
+        const remaining = d - t;
+
+        // Decide once whether this clip deserves a second player.
+        if (spare === null && started) {
+          if (d < DUAL_MAX) {
+            const holder = document.createElement("div");
+            tile.appendChild(holder);
+            spare = new YT.Player(holder, { videoId: id, host: "https://www.youtube-nocookie.com", playerVars: liveVars(id),
+              events: { onReady: (e) => { e.target.mute(); } } });
+            spare.getIframe().classList.add("live", "is-back");
+            spare.getIframe().setAttribute("tabindex", "-1");
+            spare.getIframe().setAttribute("aria-hidden", "true");
+            players.push(spare);
+          } else {
+            spare = false;
+          }
+        }
+
+        if (spare) {
+          const S = players[1 - active];
+          if (!spareWarmAt && remaining < LEAD && S.playVideo) {
+            try { S.mute(); S.seekTo(0, true); S.playVideo(); spareWarmAt = performance.now(); } catch (_) {}
+          }
+          const warm = spareWarmAt && performance.now() - spareWarmAt >= CHROME_MS;
+          if (spareWarmAt && !swapping && (remaining < 0.6 || st === PS().ENDED)) {
+            if (warm) {
+              swapping = true;
+              front(1 - active);
+              try { P.pauseVideo(); } catch (_) {}
+              active = 1 - active; spareWarmAt = 0; swapping = false;
+            } else if (!covering) {
+              // Spare not ready yet (slow network): hide the restart behind the poster.
+              covering = true; tile.classList.remove("is-live");
+              const wait = setInterval(() => {
+                if (performance.now() - spareWarmAt >= CHROME_MS) {
+                  clearInterval(wait); front(1 - active);
+                  try { P.pauseVideo(); } catch (_) {}
+                  active = 1 - active; spareWarmAt = 0; tile.classList.add("is-live"); covering = false;
+                }
+              }, 100);
+            }
+          }
+        } else if (spare === false) {
+          if (!covering && (remaining < 0.7 || st === PS().ENDED)) {
+            covering = true;
+            tile.classList.remove("is-live");
+            setTimeout(() => { try { P.seekTo(0, true); P.playVideo(); } catch (_) {} }, 250);
+            setTimeout(() => { tile.classList.add("is-live"); covering = false; }, 250 + CHROME_MS + 200);
+          }
+        }
+      };
+
+      const main = new YT.Player(frame, {
+        events: {
+          onReady: (e) => { e.target.mute(); e.target.playVideo(); },
+          onStateChange: (e) => {
+            if (e.data === PS().PLAYING && !started) {
+              started = true;
+              setTimeout(() => reveal(tile, index), REVEAL_DELAY);
+            }
+          }
+        }
+      });
+      players.push(main);
+      setInterval(tick, 100);
+    }
+
     if (frames.length) {
       const prevReady = window.onYouTubeIframeAPIReady;
       window.onYouTubeIframeAPIReady = () => {
         prevReady && prevReady();
-        frames.forEach((frame, i) => {
-          const tile = frame.closest(".tile");
-          let started = false;
-          const player = new YT.Player(frame, {
-            events: {
-              onReady: (e) => { e.target.mute(); e.target.playVideo(); },
-              onStateChange: (e) => {
-                if (e.data === YT.PlayerState.PLAYING && !started) {
-                  started = true;
-                  setTimeout(() => reveal(tile, i), REVEAL_DELAY);
-                }
-                if (e.data === YT.PlayerState.ENDED) { e.target.seekTo(0, true); e.target.playVideo(); }
-              }
-            }
-          });
-          // Seamless loop: jump back just before the end so YouTube never
-          // shows its end-of-video / replay chrome on short clips.
-          setInterval(() => {
-            try {
-              const d = player.getDuration && player.getDuration();
-              const t = player.getCurrentTime && player.getCurrentTime();
-              if (d > 1 && t > 0 && d - t < 0.8) player.seekTo(0, true);
-            } catch (_) { /* player not ready yet */ }
-          }, 250);
-        });
+        frames.forEach((frame, i) => setupTile(frame.closest(".tile"), frame, i));
       };
       const tag = document.createElement("script");
       tag.src = "https://www.youtube.com/iframe_api";

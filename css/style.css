@@ -87,8 +87,10 @@ html.is-loading { overflow: hidden; }
 .tile .live {
   position: absolute; top: 50%; left: 50%; width: 100%; height: 100%; border: 0;
   transform: translate(-50%, -50%) scale(1.22);
-  pointer-events: none;
+  pointer-events: none; z-index: 0;
+  transition: opacity .25s linear;
 }
+.tile .live.is-back { opacity: 0; }
 .tile::after { content: ""; position: absolute; inset: 0; background: rgba(0,0,0,0); transition: background .3s; }
 .tile:hover::after { background: rgba(0,0,0,.28); }
 .tile .label {
